@@ -1,22 +1,22 @@
-'use strict'
+// 'use strict'
 
-const events = require('events')
+// const events = require('events')
 
-const eventsPool = new events();
+// const eventsPool = new events();
 
-const { faker } = require('@faker-js/faker');
-
-
-const payload = {
-
-    id: faker.string.uuid(),
-    pilotes: faker.internet.userName(),
-    destinations: faker.location.country(),
-    airline: faker.definitions.airline.airline[0].name,
-}
+// const { faker } = require('@faker-js/faker');
 
 
-module.exports = {
-    eventsPool,
-    payload
-}
+// const payload = {
+
+//     id: faker.string.uuid(),
+//     pilotes: faker.internet.userName(),
+//     destinations: faker.location.country(),
+//     airline: faker.definitions.airline.airline[0].name,
+// }
+
+
+// module.exports = {
+//     eventsPool,
+//     payload
+// }
