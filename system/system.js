@@ -1,47 +1,47 @@
 'use strict'
 
-require('dotenv').config()
+require('dotenv').config();
 
 const port = process.env.PORT || 3000
 
+const server = require('socket.io')(port)
 
-// import the socket server
-const server = require('socket.io')(port);
+const pilot = server.of('/airline')
 
-// create new space name called airline
-const airline = server.of('/airline')
+const { faker } = require('@faker-js/faker')
 
+setInterval(() => {
+    let data = {
+        event: 'new-flight',
+        time: new Date(),
+        Details: {
+            airLine: faker.airline.aircraftType(),
+            flightID: faker.string.uuid(),
+            pilot: faker.internet.userName(),
+            destination: faker.location.country()
+        }
+    }
+    server.emit('new-flight', data)
+}, 10000)
 
-//connect  the server to the manager
 server.on('connection', socket => {
-    console.log('the server is connceted to id:', socket.id);
-    // take the new flight data from the emiter in manager which its the faker
-    socket.on('new-flight', data => {
-        // emiting the data globly to the flight handler which we take it from the new flight event 
-        server.emit('flight', data)
-        // emitting the data globly so we can use it in any where 
-        server.emit('getData', data)
-    })
-    // log the state of the proccess 
-    socket.on('logStatus', data => {
-        console.log(data);
-    })
-    socket.on('notifyArrived', data => {
-        server.emit('notifyManager', data)
+    console.log(`manager with id ${socket.id} has connect`);
+    socket.on('managerAlert', Details => {
+        console.log({
+            event: 'new-flight',
+            time: new Date(),
+            Details
+        });
+        server.emit('alertPilot', Details)
     })
 })
 
-// connect to the space name airline from the pilot
-airline.on('connection', socket => {
-    console.log('pilot has been connected with id', socket.id);
-    // take the data from the getFlight event which is in the pilot file
-    socket.on('getFlight', data => {
-        // emitting the data (sending it back) to the took off and arrived events to handle them in pilot file
-        airline.emit('took-off', data)
-        airline.emit('arrived', data)
+pilot.on('connection', socket => {
+    console.log(`pilot with id ${socket.id} has connect`);
+    socket.on('took-off', data => {
+        console.log(data);
     })
-    // log the state of the proccess 
-    socket.on('logStatus', data => {
+    socket.on('arrived', data => {
         console.log(data);
     })
 })
