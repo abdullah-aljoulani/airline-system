@@ -1,47 +1,62 @@
 'use strict'
 
-require('dotenv').config();
+require('dotenv').config()
 
 const port = process.env.PORT || 3000
 
-const server = require('socket.io')(port)
+const server = require('socket.io')(port);
 
-const pilot = server.of('/airline')
+const uuid = require('uuid').v4
 
-const { faker } = require('@faker-js/faker')
+const airline = server.of('/airline')
 
-setInterval(() => {
-    let data = {
-        event: 'new-flight',
-        time: new Date(),
-        Details: {
-            airLine: faker.airline.aircraftType(),
-            flightID: faker.string.uuid(),
-            pilot: faker.internet.userName(),
-            destination: faker.location.country()
-        }
-    }
-    server.emit('new-flight', data)
-}, 10000)
+const queue = {
+}
+
 
 server.on('connection', socket => {
-    console.log(`manager with id ${socket.id} has connect`);
-    socket.on('managerAlert', Details => {
-        console.log({
-            event: 'new-flight',
-            time: new Date(),
-            Details
-        });
-        server.emit('alertPilot', Details)
-    })
-})
+    console.log('the server is connected to id:', socket.id);
 
-pilot.on('connection', socket => {
-    console.log(`pilot with id ${socket.id} has connect`);
-    socket.on('took-off', data => {
+    socket.on('new-flight', data => {
+
+        server.emit('flight', data)
+
+        server.emit('getData', data)
+        let id = uuid();
+        queue[id] = data
+        server.emit('get-all', queue)
+    })
+
+    // log the state of the proccess 
+    socket.on('logStatus', data => {
         console.log(data);
     })
-    socket.on('arrived', data => {
+    socket.on('notifyArrived', data => {
+        server.emit('notifyManager', data)
+    })
+})
+// connect to the space name airline from the pilot
+airline.on('connection', socket => {
+    console.log('pilot has been connected with id', socket.id);
+    socket.on('offline', () => {
+        Object.keys(queue)
+            .forEach(id => {
+                airline.emit('get-all-offline', {
+                    id,
+                    flight: queue[id]
+                })
+            })
+    })
+    socket.on('emptyQueue', payload => {
+        delete queue[payload]
+    })
+
+    socket.on('getFlight', data => {
+        airline.emit('took-off', data)
+        airline.emit('arrived', data)
+    })
+ 
+    socket.on('logStatus', data => {
         console.log(data);
     })
 })
